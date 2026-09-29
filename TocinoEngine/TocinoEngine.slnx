@@ -3,6 +3,6 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="Engine/Engine.vcxproj" />
-  <Project Path="Sandbox/Sandbox.vcxproj" />
+  <Project Path="Engine/Engine.vcxproj" Id="f7fdb35f-3e11-4c25-88de-2a3284f6284e" />
+  <Project Path="Sandbox/Sandbox.vcxproj" Id="973a4841-3cfc-4629-a4ef-6c252fe21f8f" />
 </Solution>
