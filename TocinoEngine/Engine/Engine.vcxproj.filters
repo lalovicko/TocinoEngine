@@ -13,10 +13,21 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Archivos de origen\engine">
+      <UniqueIdentifier>{7cb9c27b-d6b6-4716-bf52-dc25cfa91844}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="source\Source.cpp">
+    <ClCompile Include="source\Engine.cpp">
       <Filter>Archivos de recursos</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\engine\API.h">
+      <Filter>Archivos de origen\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="include\engine\Engine.h">
+      <Filter>Archivos de origen\engine</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
