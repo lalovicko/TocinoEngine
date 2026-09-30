@@ -1,40 +1,56 @@
 #include <Windows.h>
+#include <cstdint>
+#include "Engine/Window.h"
+#include <Engine/Engine.h>
 
-#include <engine/Engine.h>
+int APIENTRY wWinMain(
+    _In_ HINSTANCE hInstance,
+    _In_opt_ HINSTANCE hPrevInstance,
+    _In_ LPWSTR lpCmdLine,
+    _In_ int nCmdShow
+)
+{
+    UNREFERENCED_PARAMETER(hPrevInstance);
+    UNREFERENCED_PARAMETER(lpCmdLine);
 
-#include <string>
+    constexpr UINT windowWidth = 1280;
+    constexpr UINT windowHeight = 720;
 
-int WINAPI
-wWinMain(
-    HINSTANCE, 
-    HINSTANCE, 
-    PWSTR, 
-    int) {
-    const int testResult = Engine_RunSmokeTest();
+    Window window;
 
-    std::wstring message = L"Engine cargado: ";
-    message += Engine_GetName();
-
-    if (testResult != 0)
+    if (!window.Create(
+        hInstance,
+        L"OOH-Yea",
+        windowWidth,
+        windowHeight))
     {
-        message += L"\n\nDirectX 11: OK";
-        message += L"\nDirectXTK: OK";
-        message += L"\nEngine.dll: OK";
-        message += L"\nEngine.lib: OK";
+        return -1;
     }
-    else
+
+    window.Show(nCmdShow);
+
+    Engine graphicsEngine;
+
+    if (!graphicsEngine.Initialize(
+        window.GetNativeWindow(),
+        windowWidth,
+        windowHeight))
     {
-        message += L"\n\nError durante la validacion.";
+        graphicsEngine.Shutdown();
+        return -1;
     }
 
-    MessageBoxW(
-        nullptr,
-        message.c_str(),
-        L"Sandbox - Smoke Test",
-        testResult != 0
-        ? MB_OK | MB_ICONINFORMATION
-        : MB_OK | MB_ICONERROR
-    );
+    while
+        (window.ProcessMessages())
+    {
+        if (window.IsMinimized())
+        {
+            continue;
+        }
+        graphicsEngine.Render();
+    }
 
-    return testResult != 0 ? 0 : 1;
+    graphicsEngine.Shutdown();
+
+    return 0;
 }

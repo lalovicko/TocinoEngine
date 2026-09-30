@@ -13,7 +13,7 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Archivos de origen\engine">
+    <Filter Include="Archivos de encabezado\engine">
       <UniqueIdentifier>{7cb9c27b-d6b6-4716-bf52-dc25cfa91844}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -24,10 +24,18 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\engine\API.h">
-      <Filter>Archivos de origen\engine</Filter>
+      <Filter>Archivos de encabezado\engine</Filter>
     </ClInclude>
     <ClInclude Include="include\engine\Engine.h">
-      <Filter>Archivos de origen\engine</Filter>
+      <Filter>Archivos de encabezado\engine</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\bin\Shaders\Triangle.hlsl">
+      <Filter>Archivos de origen</Filter>
+    </None>
+    <None Include="..\bin\Shaders\Cube.hlsl">
+      <Filter>Archivos de origen</Filter>
+    </None>
   </ItemGroup>
 </Project>
