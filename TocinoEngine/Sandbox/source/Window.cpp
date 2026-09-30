@@ -1,3 +1,11 @@
+/**
+ * @file Window.cpp
+ * @brief Implementación de Window.
+ *
+ * La documentación de la interfaz (parámetros, valores de retorno, etc.) está en Window.h.
+ * @see Window.h
+ */
+
 
 #include "Engine/Window.h"
 
@@ -21,6 +29,7 @@ Window::Create(
 		return false;
 	}
 
+	// Registro de la clase de ventana.
 	WNDCLASSEXW windowClass{};
 
 	windowClass.cbSize = sizeof(WNDCLASSEXW);
@@ -37,12 +46,14 @@ Window::Create(
 	m_instance = Instance;
 	m_classRegistered = true;
 
+	// Estilo fijo: sin redimensionar ni maximizar.
 	constexpr DWORD Style =
 		WS_OVERLAPPED |
 		WS_CAPTION |
 		WS_SYSMENU |
 		WS_MINIMIZEBOX;
 
+	// AdjustWindowRectEx convierte el tamaño del área cliente al tamaño total de la ventana.
 	RECT windowRect{
 		0,
 		0,
@@ -66,6 +77,7 @@ Window::Create(
 	const int windowHeight =
 		windowRect.bottom - windowRect.top;
 
+	// Se pasa `this` como lpCreateParams: WindowProc lo recupera en WM_NCCREATE.
 	m_handle = CreateWindowExW(
 		0,
 		ClassName,
@@ -147,6 +159,7 @@ LRESULT CALLBACK Window::WindowProc(
 	UINT message,
 	WPARAM wParam,
 	LPARAM lParam) {
+	// Recupera el objeto Window asociado a este HWND (ver WM_NCCREATE).
 	Window* window = nullptr;
 
 	if (message == WM_NCCREATE)

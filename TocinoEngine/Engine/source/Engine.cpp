@@ -1,3 +1,14 @@
+/**
+ * @file Engine.cpp
+ * @brief Implementación del motor gráfico sobre Direct3D 11 (patrón PImpl).
+ *
+ * Contiene la estructura interna Engine::Implementation (dispositivo, swap chain, buffers,
+ * shaders...) y la definición de los métodos públicos de Engine. La documentación de esos
+ * métodos (parámetros, retornos, advertencias) está en Engine.h.
+ *
+ * @see Engine.h
+ */
+
 #include <Engine/Engine.h>
 #include <DirectXMath.h>
 #include <chrono>
@@ -7,7 +18,23 @@
 #include <cstddef>
 #include <cstdint>
 #include <new>
+ /**
+  * @def SAFE_RELEASE(x)
+  * @brief Libera un objeto COM y pone el puntero en nullptr.
+  * @note Sin uso actualmente: se prefiere la plantilla SafeRelease(). Al ser dos
+  * sentencias, esta macro no es segura dentro de un `if` sin llaves.
+  */
 #define SAFE_RELEASE(x) if(x != nullptr) x->Release(); x = nullptr;
+
+  /**
+   * @def MESSAGE(classObj, method, state)
+   * @brief Escribe en la ventana Output de Visual Studio un aviso de creación de recurso.
+   * @param classObj Nombre de la clase que crea el recurso.
+   * @param method   Nombre del método.
+   * @param state    Texto de estado.
+   * @note Sin uso actualmente. Necesita `#include <sstream>` (usa `std::wostringstream`),
+   * que este archivo todavía no incluye.
+   */
 #define MESSAGE( classObj, method, state )   \
 {                                            \
    std::wostringstream os_;                  \
@@ -15,6 +42,16 @@
    OutputDebugStringW( os_.str().c_str() );  \
 }
 
+   /**
+    * @def ERROR(classObj, method, errorMSG)
+    * @brief Escribe en la ventana Output un mensaje de error; nunca lanza excepciones.
+    * @param classObj Nombre de la clase donde ocurrió el error.
+    * @param method   Nombre del método.
+    * @param errorMSG Descripción del error.
+    * @warning `ERROR` ya es una macro de `wingdi.h`: redefinirla produce el warning C4005
+    * (aparece en `Engine.log`). Conviene renombrarla, por ejemplo a `ERROR_MSG`.
+    * @note Sin uso actualmente. Necesita `#include <sstream>`.
+    */
 #define ERROR(classObj, method, errorMSG)                     \
 {                                                             \
     try {                                                     \
@@ -27,6 +64,11 @@
     }                                                         \
 }
 
+    /**
+     * @brief Llama a `Release()` sobre un objeto COM (si no es nulo) y deja el puntero en nullptr.
+     * @tparam T Tipo COM (ID3D11Device, ID3D11Buffer, ID3DBlob, ...).
+     * @param[in,out] object Puntero a liberar; al terminar vale nullptr.
+     */
 template<typename T>
 void SafeRelease(T*& object) noexcept
 {
@@ -37,41 +79,73 @@ void SafeRelease(T*& object) noexcept
     }
 }
 
+/**
+ * @brief Estado interno del motor (patrón PImpl): objetos de Direct3D 11 y datos de la escena.
+ *
+ * Todos los punteros COM valen nullptr mientras el recurso no exista.
+ * ReleaseResources() los libera y los reinicia.
+ */
 struct
     Engine::Implementation {
+    /**
+     * @brief Vértice de la malla: posición y color.
+     * @note Su disposición en memoria debe coincidir con el input layout (`inputElements`)
+     * y con `VSInput` en Cube.hlsl.
+     */
     struct Vertex
     {
-        float position[3];
-        float color[4];
+        float position[3];  ///< Posición en espacio local (x, y, z).
+        float color[4];  ///< Color RGBA, cada canal entre 0 y 1.
     };
-	struct alignas(16) TransformBuffer
-	{
-		DirectX::XMFLOAT4X4 worldViewProjection;
-	};
 
-    HWND window = nullptr;
+    /**
+     * @brief Contenido del constant buffer que recibe el vertex shader (registro b0).
+     * @note Está alineada a 16 bytes: D3D11 exige que el tamaño de un constant buffer sea
+     * múltiplo de 16.
+     */
+    struct alignas(16) TransformBuffer
+    {
+        DirectX::XMFLOAT4X4 worldViewProjection;  ///< Matriz World * View * Projection, ya transpuesta (ver Engine::Render).
+    };
 
-    std::uint32_t width = 0;
-    std::uint32_t height = 0;
+    HWND window = nullptr;  ///< Ventana nativa donde se presenta la imagen.
 
-    ID3D11Device* device = nullptr;
-    ID3D11DeviceContext* context = nullptr;
-    IDXGISwapChain* swapChain = nullptr;
-    ID3D11RenderTargetView* renderTarget = nullptr;
-	ID3D11Texture2D* depthStencilBuffer = nullptr;
-	ID3D11DepthStencilView* depthStencilView = nullptr;
+    std::uint32_t width = 0;  ///< Ancho del área de dibujo, en píxeles.
+    std::uint32_t height = 0;  ///< Alto del área de dibujo, en píxeles.
 
-	ID3D11Buffer* transformBuffer = nullptr;
-	ID3D11Buffer* indexBuffer = nullptr;
-	ID3D11RasterizerState* rasterizerState = nullptr;
+    ID3D11Device* device = nullptr;  ///< Dispositivo: crea los recursos de la GPU.
+    ID3D11DeviceContext* context = nullptr;  ///< Contexto: emite los comandos de dibujo.
+    IDXGISwapChain* swapChain = nullptr;  ///< Cadena de intercambio (doble búfer) que presenta en la ventana.
+    ID3D11RenderTargetView* renderTarget = nullptr;  ///< Vista del back buffer, donde se dibuja.
+    ID3D11Texture2D* depthStencilBuffer = nullptr;  ///< Textura del depth/stencil buffer.
+    ID3D11DepthStencilView* depthStencilView = nullptr;  ///< Vista del depth/stencil buffer (la usa OMSetRenderTargets).
 
-    std::chrono::steady_clock::time_point startTime{};
+    ID3D11Buffer* transformBuffer = nullptr;  ///< Constant buffer con la matriz de transformación (dinámico, se reescribe cada frame).
+    ID3D11Buffer* indexBuffer = nullptr;  ///< Index buffer del cubo (36 índices de 16 bits).
+    ID3D11RasterizerState* rasterizerState = nullptr;  ///< Reservado: todavía no se crea. Render() usa el estado por defecto (relleno sólido, culling de caras traseras).
 
-    ID3D11VertexShader* vertexShader = nullptr;
-    ID3D11PixelShader* pixelShader = nullptr;
-    ID3D11InputLayout* inputLayout = nullptr;
-    ID3D11Buffer* vertexBuffer = nullptr;
+    std::chrono::steady_clock::time_point startTime{};  ///< Instante de Initialize(); referencia para la animación.
 
+    ID3D11VertexShader* vertexShader = nullptr;  ///< Vertex shader (VSMain de Cube.hlsl).
+    ID3D11PixelShader* pixelShader = nullptr;  ///< Pixel shader (PSMain de Cube.hlsl).
+    ID3D11InputLayout* inputLayout = nullptr;  ///< Describe a la GPU cómo leer un Vertex.
+    ID3D11Buffer* vertexBuffer = nullptr;  ///< Vertex buffer del cubo (8 vértices).
+
+    /**
+     * @brief Compila una función de entrada de un archivo HLSL en tiempo de ejecución.
+     *
+     * Usa `D3DCompileFromFile`. En Debug compila con información de depuración y sin
+     * optimizar; en Release, con optimización nivel 3. Los mensajes del compilador se
+     * envían a `OutputDebugStringA` (ventana Output de Visual Studio).
+     *
+     * @param[in]  filename    Ruta del archivo `.hlsl`. Si es relativa, se resuelve contra el
+     *                         directorio de trabajo del proceso.
+     * @param[in]  entryPoint  Nombre de la función de entrada (ej. "VSMain").
+     * @param[in]  shaderModel Perfil objetivo (ej. "vs_5_0", "ps_5_0").
+     * @param[out] shaderBlob  Recibe el bytecode compilado. El llamador debe liberarlo con
+     *                         SafeRelease(). Queda en nullptr si la compilación falla.
+     * @return true si compiló. false si algún argumento es nulo o la compilación falla.
+     */
     static bool
         CompileShader(const wchar_t* filename, const char* entryPoint,
             const char* shaderModel, ID3DBlob** shaderBlob) noexcept {
@@ -124,6 +198,16 @@ struct
         return true;
     }
 
+    /**
+     * @brief Libera los recursos de Direct3D y reinicia `window`, `width` y `height`.
+     *
+     * Primero llama a `ClearState()` y `Flush()` para desenlazar todo del pipeline;
+     * después libera los objetos en orden inverso de dependencia. Es seguro llamarla
+     * aunque no todo se haya creado.
+     *
+     * @todo Faltan `SafeRelease(depthStencilView)` y `SafeRelease(depthStencilBuffer)`
+     * (antes de `SafeRelease(renderTarget)`). Sin eso el depth buffer no se libera.
+     */
     void ReleaseResources() noexcept
     {
         if (context)
@@ -154,8 +238,7 @@ Engine::Engine() noexcept
     : m_implementation(
         new (std::nothrow) Implementation{}
     )
-{
-}
+{}
 
 Engine::~Engine() noexcept
 {
@@ -187,23 +270,26 @@ bool Engine::Initialize(
     engine.window = static_cast<HWND>(nativeWindow);
     engine.width = width;
     engine.height = height;
+
+    // --- Swap chain: doble búfer, RGBA de 8 bits, modo ventana ---
     DXGI_SWAP_CHAIN_DESC swapChainDescription{};
 
     swapChainDescription.BufferCount = 2;
-    swapChainDescription.BufferDesc.Width =     engine.width;
-    swapChainDescription.BufferDesc.Height =      engine.height;
-    swapChainDescription.BufferDesc.Format =      DXGI_FORMAT_R8G8B8A8_UNORM;
-    swapChainDescription.BufferDesc.RefreshRate.Numerator =       60;
-    swapChainDescription.BufferDesc.RefreshRate.Denominator =        1;
-    swapChainDescription.BufferUsage =       DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    swapChainDescription.OutputWindow =     engine.window;
+    swapChainDescription.BufferDesc.Width = engine.width;
+    swapChainDescription.BufferDesc.Height = engine.height;
+    swapChainDescription.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    swapChainDescription.BufferDesc.RefreshRate.Numerator = 60;
+    swapChainDescription.BufferDesc.RefreshRate.Denominator = 1;
+    swapChainDescription.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    swapChainDescription.OutputWindow = engine.window;
     swapChainDescription.SampleDesc.Count = 1;
-    swapChainDescription.SampleDesc.Quality = 0; 
+    swapChainDescription.SampleDesc.Quality = 0;
     swapChainDescription.Windowed = TRUE;
 
     swapChainDescription.SwapEffect =
         DXGI_SWAP_EFFECT_DISCARD;
 
+    // --- Dispositivo: primero la GPU; si falla, WARP (software) como respaldo ---
     constexpr D3D_FEATURE_LEVEL featureLevels[]
     {
         D3D_FEATURE_LEVEL_11_0
@@ -254,6 +340,7 @@ bool Engine::Initialize(
         return false;
     }
 
+    // --- Render target a partir del back buffer ---
     ID3D11Texture2D* backBuffer = nullptr;
 
     result = engine.swapChain->GetBuffer(
@@ -282,6 +369,7 @@ bool Engine::Initialize(
         return false;
     }
 
+    // --- Viewport: cubre toda la ventana ---
     D3D11_VIEWPORT viewport{};
 
     viewport.TopLeftX = 0.0f;
@@ -300,6 +388,8 @@ bool Engine::Initialize(
         1,
         &viewport
     );
+
+    // --- Depth buffer: 24 bits de profundidad + 8 de stencil ---
     D3D11_TEXTURE2D_DESC depthDescription{};
     depthDescription.Width = engine.width;
     depthDescription.Height = engine.height;
@@ -317,6 +407,8 @@ bool Engine::Initialize(
     result = engine.device->CreateDepthStencilView(
         engine.depthStencilBuffer, nullptr, &engine.depthStencilView);
     if (FAILED(result)) { engine.ReleaseResources(); return false; }
+
+    // --- Shaders e input layout (la ruta es relativa al directorio de trabajo) ---
     ID3DBlob* vertexShaderBlob = nullptr;
     ID3DBlob* pixelShaderBlob = nullptr;
 
@@ -393,6 +485,7 @@ bool Engine::Initialize(
         return false;
     }
 
+    // --- Vértices del cubo: 0-3 son la cara del frente (z = -0.5) y 4-7 la del fondo (z = +0.5) ---
     constexpr Implementation::Vertex vertices[]
     {
         {
@@ -435,6 +528,8 @@ bool Engine::Initialize(
             { 1.0f, 0.3f, 0.0f, 1.0f }
         }
     };
+
+    // --- Vertex buffer inmutable ---
     D3D11_BUFFER_DESC vertexBufferDescription{};
 
     vertexBufferDescription.ByteWidth =
@@ -465,6 +560,7 @@ bool Engine::Initialize(
         return false;
     }
 
+    // --- Index buffer: 12 triángulos (3 índices c/u), en sentido horario visto desde afuera ---
     constexpr std::uint16_t indices[]
     {
         0, 1, 2,  0, 2, 3,   // frente
@@ -487,6 +583,7 @@ bool Engine::Initialize(
         &indexBufferDescription, &initialIndexData, &engine.indexBuffer);
     if (FAILED(result)) { engine.ReleaseResources(); return false; }
 
+    // --- Constant buffer dinámico: se reescribe cada frame con Map/Unmap ---
     D3D11_BUFFER_DESC transformBufferDescription{};
     transformBufferDescription.ByteWidth = static_cast<UINT>(sizeof(Implementation::TransformBuffer));
     transformBufferDescription.Usage = D3D11_USAGE_DYNAMIC;
@@ -497,6 +594,7 @@ bool Engine::Initialize(
         &transformBufferDescription, nullptr, &engine.transformBuffer);
     if (FAILED(result)) { engine.ReleaseResources(); return false; }
 
+    // Instante de referencia para la animación.
     engine.startTime = std::chrono::steady_clock::now();
 
     return true;
@@ -526,6 +624,7 @@ void Engine::Render() noexcept
 
     constexpr float clearColor[]{ 0.03f, 0.04f, 0.08f, 1.0f };
 
+    // Activa render target + depth buffer y limpia ambos.
     engine.context->OMSetRenderTargets(
         1, &engine.renderTarget, engine.depthStencilView);
 
@@ -556,10 +655,12 @@ void Engine::Render() noexcept
         static_cast<float>(engine.width) / static_cast<float>(engine.height),
         0.1f, 100.0f);
 
+    // HLSL lee las matrices por columnas y DirectXMath las guarda por filas: se transpone.
     Implementation::TransformBuffer transform{};
     XMStoreFloat4x4(&transform.worldViewProjection,
         XMMatrixTranspose(world * view * projection));
 
+    // Sube la matriz al constant buffer (WRITE_DISCARD: descarta el contenido anterior).
     D3D11_MAPPED_SUBRESOURCE mapped{};
     if (SUCCEEDED(engine.context->Map(engine.transformBuffer, 0,
         D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
@@ -581,8 +682,10 @@ void Engine::Render() noexcept
     engine.context->VSSetConstantBuffers(0, 1, &engine.transformBuffer);
     engine.context->PSSetShader(engine.pixelShader, nullptr, 0);
 
+    // 36 índices = 12 triángulos = el cubo.
     engine.context->DrawIndexed(36, 0, 0);
 
+    // Present(1, 0): espera al refresco del monitor (vsync).
     engine.swapChain->Present(1, 0);
 }
 
