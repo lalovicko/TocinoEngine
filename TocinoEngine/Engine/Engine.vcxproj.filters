@@ -16,9 +16,27 @@
     <Filter Include="Archivos de encabezado\engine">
       <UniqueIdentifier>{7cb9c27b-d6b6-4716-bf52-dc25cfa91844}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Archivos de encabezado\rendering">
+      <UniqueIdentifier>{4e303e9a-73e8-4b66-b2ef-14195347a2ca}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Archivos de origen\rendering">
+      <UniqueIdentifier>{309ac396-9d37-4daa-8de9-10bc6bca4a97}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="source\Engine.cpp">
+      <Filter>Archivos de recursos</Filter>
+    </ClCompile>
+    <ClCompile Include="source\rendering\Buffer.cpp">
+      <Filter>Archivos de recursos</Filter>
+    </ClCompile>
+    <ClCompile Include="source\rendering\Device.cpp">
+      <Filter>Archivos de recursos</Filter>
+    </ClCompile>
+    <ClCompile Include="source\rendering\DeviceContext.cpp">
+      <Filter>Archivos de recursos</Filter>
+    </ClCompile>
+    <ClCompile Include="source\rendering\Texture2D.cpp">
       <Filter>Archivos de recursos</Filter>
     </ClCompile>
   </ItemGroup>
@@ -28,6 +46,27 @@
     </ClInclude>
     <ClInclude Include="include\engine\Engine.h">
       <Filter>Archivos de encabezado\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="include\rendering\Device.h">
+      <Filter>Archivos de encabezado\rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="source\rendering\DeviceContext.h">
+      <Filter>Archivos de encabezado\rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="include\engine\Prerequisites.h">
+      <Filter>Archivos de encabezado\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="include\rendering\Buffer.h">
+      <Filter>Archivos de encabezado\rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="include\engine\MeshComponent.h">
+      <Filter>Archivos de encabezado\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="include\rendering\SwapChain.h">
+      <Filter>Archivos de encabezado\rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Texture2D.h">
+      <Filter>Archivos de encabezado\rendering</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

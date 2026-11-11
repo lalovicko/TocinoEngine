@@ -201,6 +201,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="source\Engine.cpp" />
+    <ClCompile Include="source\rendering\Buffer.cpp" />
+    <ClCompile Include="source\rendering\Device.cpp" />
+    <ClCompile Include="source\rendering\DeviceContext.cpp" />
+    <ClCompile Include="source\rendering\Texture2D.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ThirdParties\DirectXTK\DirectXTK_Desktop_2022.vcxproj">
@@ -210,6 +214,13 @@
   <ItemGroup>
     <ClInclude Include="include\engine\API.h" />
     <ClInclude Include="include\engine\Engine.h" />
+    <ClInclude Include="include\engine\MeshComponent.h" />
+    <ClInclude Include="include\engine\Prerequisites.h" />
+    <ClInclude Include="include\rendering\Buffer.h" />
+    <ClInclude Include="include\rendering\Device.h" />
+    <ClInclude Include="include\rendering\SwapChain.h" />
+    <ClInclude Include="source\rendering\DeviceContext.h" />
+    <ClInclude Include="Texture2D.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\bin\Shaders\Cube.hlsl">
