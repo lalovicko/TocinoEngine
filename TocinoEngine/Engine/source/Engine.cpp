@@ -303,7 +303,7 @@ bool Engine::Initialize(
     ID3DBlob* pixelShaderBlob = nullptr;
 
     if (!Implementation::CompileShader(
-        L"shaders\\Cube.hlsl",
+        L"bin\\Shaders\\Cube.hlsl",
         "VSMain",
         "vs_5_0",
         &vertexShaderBlob))
@@ -313,7 +313,7 @@ bool Engine::Initialize(
     }
 
     if (!Implementation::CompileShader(
-        L"shaders\\Cube.hlsl",
+        L"bin\\Shaders\\Cube.hlsl",
         "PSMain",
         "ps_5_0",
         &pixelShaderBlob))
