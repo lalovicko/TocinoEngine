@@ -219,8 +219,8 @@
     <ClInclude Include="include\rendering\Buffer.h" />
     <ClInclude Include="include\rendering\Device.h" />
     <ClInclude Include="include\rendering\SwapChain.h" />
+    <ClInclude Include="include\rendering\Texture2D.h" />
     <ClInclude Include="source\rendering\DeviceContext.h" />
-    <ClInclude Include="Texture2D.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\bin\Shaders\Cube.hlsl">

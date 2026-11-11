@@ -1,9 +1,20 @@
+/**
+ * @file Device.cpp
+ * @brief Implementación de las funciones auxiliares de creación de recursos D3D11.
+ */
 #include "Rendering/Device.h"
 
+ // La definición de Device::init() no forma parte de este archivo fuente.
+
+ /** @brief Destructor; libera el dispositivo mediante @c destroy(). */
 Device::~Device() {
 	destroy();
 }
 
+/**
+ * @brief Libera la referencia COM al dispositivo Direct3D 11.
+ * @post @c m_device queda en @c nullptr.
+ */
 void
 Device::destroy() {
 	SafeRelease(m_device);

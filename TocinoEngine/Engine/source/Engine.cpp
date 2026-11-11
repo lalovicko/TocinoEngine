@@ -1,3 +1,9 @@
+/**
+ * @file Engine.cpp
+ * @brief Implementación del ciclo de vida y del renderizado principal del motor.
+ * @details Configura Direct3D 11, crea los recursos para dibujar un cubo y presenta
+ *          cada cuadro mediante una cadena de intercambio (swap chain).
+ */
 #include <Engine/Engine.h>
 #include <Engine/MeshComponent.h>
 #include <Rendering/Device.h>
@@ -6,40 +12,61 @@
 #include <Rendering/Buffer.h>
 
 
+ /**
+  * @struct Engine::Implementation
+  * @brief Estado privado del motor y propietario de sus recursos de Direct3D 11.
+  * @details Agrupa dispositivo, contexto, swap chain, vistas, buffers, shaders,
+  *          geometría y datos temporales necesarios para renderizar.
+  */
 struct
     Engine::Implementation {
+    /**
+     * @struct TransformBuffer
+     * @brief Datos constantes enviados al shader para transformar los vértices.
+     * @details Su alineación de 16 bytes cumple el requisito de los constant buffers.
+     */
     struct alignas(16) TransformBuffer
     {
+        /** @brief Matriz combinada de mundo, vista y proyección. */
         DirectX::XMFLOAT4X4 worldViewProjection;
     };
 
-    HWND window = nullptr;
+    HWND window = nullptr; ///< Ventana Win32 sobre la que se presenta el resultado.
 
-    std::uint32_t width = 0;
-    std::uint32_t height = 0;
+    std::uint32_t width = 0; ///< Ancho del área de renderizado, en píxeles.
+    std::uint32_t height = 0; ///< Alto del área de renderizado, en píxeles.
 
-    Device device;
-    DeviceContext context;
-    IDXGISwapChain* swapChain = nullptr;
-    ID3D11RenderTargetView* renderTarget = nullptr;
-    Texture2D backBuffer;
-    Texture2D depthStencilBuffer;
-    ID3D11DepthStencilView* depthStencilView = nullptr;
+    Device device; ///< Dispositivo lógico de Direct3D 11.
+    DeviceContext context; ///< Contexto inmediato utilizado para enviar comandos.
+    IDXGISwapChain* swapChain = nullptr; ///< Cadena de intercambio que presenta los cuadros.
+    ID3D11RenderTargetView* renderTarget = nullptr; ///< Vista del back buffer como destino de renderizado.
+    Texture2D backBuffer; ///< Recurso de textura correspondiente al back buffer.
+    Texture2D depthStencilBuffer; ///< Textura utilizada para profundidad y stencil.
+    ID3D11DepthStencilView* depthStencilView = nullptr; ///< Vista DSV de la textura de profundidad.
 
-    Buffer vertexBuffer;
-    Buffer indexBuffer;
-    Buffer transformBuffer;
+    Buffer vertexBuffer; ///< Buffer de vértices del cubo de prueba.
+    Buffer indexBuffer; ///< Buffer de índices del cubo de prueba.
+    Buffer transformBuffer; ///< Constant buffer con la matriz World-View-Projection.
 
-    ID3D11RasterizerState* rasterizerState = nullptr;
+    ID3D11RasterizerState* rasterizerState = nullptr; ///< Estado de rasterizado aplicado durante el dibujo.
 
-    std::chrono::steady_clock::time_point startTime{};
+    std::chrono::steady_clock::time_point startTime{}; ///< Instante de inicio usado para animar el cubo.
 
-    MeshComponent mesh;
+    MeshComponent mesh; ///< Datos de CPU de la geometría que se dibuja.
 
-    ID3D11VertexShader* vertexShader = nullptr;
-    ID3D11PixelShader* pixelShader = nullptr;
-    ID3D11InputLayout* inputLayout = nullptr;
+    ID3D11VertexShader* vertexShader = nullptr; ///< Vertex shader compilado.
+    ID3D11PixelShader* pixelShader = nullptr; ///< Pixel shader compilado.
+    ID3D11InputLayout* inputLayout = nullptr; ///< Layout que describe el formato de @c Vertex.
 
+    /**
+     * @brief Compila una entrada HLSL desde un archivo.
+     * @param filename Ruta del archivo HLSL.
+     * @param entryPoint Nombre de la función de entrada del shader.
+     * @param shaderModel Perfil de shader (por ejemplo, @c vs_5_0 o @c ps_5_0).
+     * @param shaderBlob Dirección que recibe el blob de bytecode compilado.
+     * @return @c true si la compilación tiene éxito; en otro caso @c false.
+     * @note Los mensajes del compilador se envían a la salida de depuración.
+     */
     static bool
         CompileShader(const wchar_t* filename, const char* entryPoint,
             const char* shaderModel, ID3DBlob** shaderBlob) noexcept {
@@ -92,6 +119,11 @@ struct
         return true;
     }
 
+    /**
+     * @brief Libera todos los recursos propiedad de la implementación.
+     * @details Destruye vistas, buffers, shaders, swap chain, contexto y dispositivo,
+     *          y restablece la ventana y dimensiones almacenadas.
+     */
     void ReleaseResources() noexcept
     {
         //if (context)
@@ -131,12 +163,16 @@ struct
 
 };
 
+/**
+ * @brief Construye el motor y asigna su objeto de implementación mediante @c new (std::nothrow).
+ */
 Engine::Engine() noexcept
     : m_implementation(
         new (std::nothrow) Implementation{}
     )
 {}
 
+/** @brief Apaga el motor y destruye su objeto de implementación. */
 Engine::~Engine() noexcept
 {
     Shutdown();
@@ -145,6 +181,15 @@ Engine::~Engine() noexcept
     m_implementation = nullptr;
 }
 
+/**
+ * @brief Crea y configura los recursos necesarios para renderizar el cubo de prueba.
+ * @param nativeWindow Ventana Win32 recibida como puntero opaco.
+ * @param width Ancho de renderizado en píxeles.
+ * @param height Alto de renderizado en píxeles.
+ * @return @c true si la inicialización concluye; @c false si falla una validación o creación.
+ * @details Intenta primero el dispositivo de hardware y, si falla, vuelve a intentarlo
+ *          con WARP. Ante un error posterior libera los recursos creados parcialmente.
+ */
 bool Engine::Initialize(
     void* nativeWindow,
     std::uint32_t width,
@@ -494,6 +539,12 @@ bool Engine::Initialize(
     return true;
 }
 
+/**
+ * @brief Actualiza la transformación animada, dibuja la geometría indexada y presenta el cuadro.
+ * @details Calcula las matrices de mundo, vista y proyección, actualiza el constant buffer,
+ *          configura el pipeline y ejecuta @c DrawIndexed seguido de @c Present.
+ * @note La función retorna sin dibujar cuando falta alguno de los recursos requeridos.
+ */
 void Engine::Render() noexcept
 {
     if (!m_implementation)
@@ -635,6 +686,10 @@ void Engine::Render() noexcept
     engine.swapChain->Present(1, 0);
 }
 
+/**
+ * @brief Libera los recursos del motor si su implementación existe.
+ * @details Puede llamarse de forma explícita antes del destructor.
+ */
 void Engine::Shutdown() noexcept
 {
     if (m_implementation)

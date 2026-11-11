@@ -1,6 +1,6 @@
 /**
  * @file MeshComponent.h
- * @brief Declara la API de MeshComponent dentro del subsistema Core.
+ * @brief Declara el contenedor de datos geométricos de una malla del motor.
  * @ingroup core
  */
 #pragma once
@@ -8,21 +8,21 @@
 
  /**
   * @class MeshComponent
-  * @brief Componente que almacena la informaci�n de geometr�a (malla) de una entidad.
+  * @brief Contenedor de datos geométricos de una malla utilizada por el motor.
   *
-  * Un @c MeshComponent contiene los v�rtices e �ndices que describen la geometr�a de un objeto.
-  * Es un componente de datos puro del ECS.
+  * Un @c MeshComponent agrupa los vértices, índices, nombre y transformación local.
+  * No crea recursos de GPU por sí mismo; almacena datos que pueden utilizarse para construir buffers.
   *
   * La malla incluye:
-  * - Lista de v�rtices (posici�n, normal, UV, etc.).
-  * - Lista de �ndices que definen las primitivas (tri�ngulos, l�neas).
-  * - Contadores de v�rtices e �ndices.
+  * - Lista de vértices con la estructura @c Vertex (posición y color RGBA).
+  * - Lista de índices que definen las primitivas (triángulos, líneas).
+  * - Contadores de vértices e índices.
   */
 class
     MeshComponent {
 public:
     /**
-     * @brief Constructor por defecto.
+     * @brief Construye una malla vacía e inicializa sus contadores en cero.
      */
     MeshComponent() : m_numVertex(0), m_numIndex(0) {}
 
@@ -32,7 +32,7 @@ public:
      */
     std::string m_name;
     /**
-     * @brief Transform local de la malla dentro del modelo importado.
+     * @brief Matriz de transformación local de la malla, inicializada como identidad.
      */
     DirectX::XMFLOAT4X4 m_localTransform = DirectX::XMFLOAT4X4(
         1.0f, 0.0f, 0.0f, 0.0f,
@@ -41,23 +41,23 @@ public:
         0.0f, 0.0f, 0.0f, 1.0f);
 
     /**
-     * @brief Lista de v�rtices de la malla.
+     * @brief Lista de vértices de la malla.
      */
     std::vector<Vertex> m_vertex;
     //std::vector<SkyboxVertex> m_skyVertex;
 
     /**
-     * @brief Lista de �ndices que definen las primitivas de la malla.
+     * @brief Lista de índices que definen las primitivas de la malla.
      */
     std::vector<unsigned int> m_index;
 
     /**
-     * @brief N�mero total de v�rtices en la malla.
+     * @brief Contador de vértices de la malla. Debe mantenerse sincronizado con @c m_vertex.
      */
     int m_numVertex;
 
     /**
-     * @brief N�mero total de �ndices en la malla.
+     * @brief Contador de índices de la malla. Debe mantenerse sincronizado con @c m_index.
      */
     int m_numIndex;
 };

@@ -1,6 +1,6 @@
 /**
- * @file Texture.h
- * @brief Declara la API de Texture dentro del subsistema Core.
+ * @file Texture2D.h
+ * @brief Declara la clase Texture2D del subsistema de renderizado.
  * @ingroup core
  */
 #pragma once
@@ -10,25 +10,29 @@ class Device;
 class DeviceContext;
 
 /**
- * @class Texture
+ * @class Texture2D
  * @brief Encapsula una textura 2D en Direct3D 11, incluyendo su recurso y vista como Shader Resource.
  *
- * Esta clase administra texturas que pueden provenir de:
- * - Archivos de imagen (png, jpg, etc.).
- * - Texturas creadas en memoria (RTV, DSV, UAV).
- * - Copias a partir de otra textura.
+ * La clase mantiene una referencia al recurso @c ID3D11Texture2D y, cuando existe,
+ * una vista @c ID3D11ShaderResourceView para enlazarlo a los shaders.
  *
- * Proporciona métodos para inicialización, actualización, uso en shaders y destrucción.
+ * Puede crear texturas vacías en memoria y define una API para carga desde imagen y
+ * cubemaps; algunas de esas operaciones continúan sin implementación en este código.
  */
 class
     Texture2D {
 public:
+    /** @brief Construye una textura vacía, sin recursos de GPU. */
     Texture2D() noexcept = default;
+
+    /** @brief Libera el recurso y la vista asociados a la textura. */
     ~Texture2D() noexcept;
 
+    /** @brief Deshabilita la copia para evitar duplicar la propiedad de referencias COM. */
     Texture2D(const Texture2D&) = delete;
     Texture2D& operator=(const Texture2D&) = delete;
 
+    /** @brief Deshabilita el movimiento de la instancia. */
     Texture2D(Texture2D&&) = delete;
     Texture2D& operator=(Texture2D&&) = delete;
 
@@ -41,9 +45,12 @@ public:
      * @param device        Dispositivo con el que se creará la textura.
      * @param textureName   Nombre o ruta del archivo de textura.
      * @param extensionType Tipo de extensión de archivo (ej. PNG, JPG, DDS).
-     * @return @c S_OK si fue exitoso; código @c HRESULT en caso contrario.
+     * @return Código @c HRESULT de la operación. Actualmente las rutas PNG y JPG
+     *         devuelven @c E_NOTIMPL por la función auxiliar pendiente.
      *
-     * @post Si retorna @c S_OK, @c m_texture y @c m_textureFromImg != nullptr.
+     * @note Los casos PNG y JPG llaman a @c InitTextureFromImage. El caso DDS no realiza
+     *       una carga en la implementación actual; además, @c InitTextureFromImage retorna
+     *       @c E_NOTIMPL en el código proporcionado, por lo que la carga de imágenes está pendiente.
      */
     HRESULT
         init(Device& device,
@@ -83,11 +90,20 @@ public:
      * @param device     Dispositivo con el que se creará la textura.
      * @param textureRef Referencia a otra textura existente.
      * @param format     Nuevo formato DXGI de la textura.
-     * @return @c S_OK si fue exitoso; código @c HRESULT en caso contrario.
+     * @return @c E_NOTIMPL en la implementación actual.
+     * @note La copia/conversión de una textura existente aún no está implementada.
      */
     HRESULT
         init(Device& device, Texture2D& textureRef, DXGI_FORMAT format);
 
+    /**
+     * @brief Carga una imagen desde disco y prepara el recurso de textura correspondiente.
+     * @param device Dispositivo de Direct3D 11.
+     * @param fullPath Ruta completa del archivo de imagen.
+     * @param texture Objeto que recibirá el recurso cargado.
+     * @return @c E_NOTIMPL en la implementación proporcionada.
+     * @note La función está declarada, pero su cuerpo actual no realiza la carga.
+     */
     HRESULT
         InitTextureFromImage(Device& device,
             const std::string& fullPath,
@@ -119,12 +135,31 @@ public:
     void
         destroy();
 
+    /**
+     * @brief Crea una textura cubemap a partir de seis imágenes, una por cara.
+     * @param device Dispositivo que creará los recursos.
+     * @param deviceContext Contexto utilizado para operaciones de copia o generación de mipmaps.
+     * @param facePaths Rutas de las seis caras del cubemap.
+     * @param generateMips Indica si se solicita generar niveles mip.
+     * @return @c E_NOTIMPL en la implementación proporcionada.
+     * @note La creación de cubemaps todavía no está implementada.
+     */
     HRESULT
         CreateCubemap(Device& device,
             DeviceContext& deviceContext,
             const std::array<std::string, 6>& facePaths,
             bool generateMips /*= false*/);
 
+    /**
+     * @brief Crea una vista SRV que expone una sola cara de una textura tipo cubemap.
+     * @param device Dispositivo de Direct3D 11.
+     * @param cubemapTex Recurso de textura que contiene las seis caras.
+     * @param format Formato DXGI de la vista.
+     * @param faceIndex Índice de la cara dentro del arreglo de slices.
+     * @param mipLevels Cantidad de niveles mip incluidos en la vista.
+     * @return Puntero a la vista creada o @c nullptr si falla la creación.
+     * @pre @p device y @p cubemapTex deben ser punteros válidos.
+     */
     ID3D11ShaderResourceView*
         CreateCubemapFaceSRV(ID3D11Device* device,
             ID3D11Texture2D* cubemapTex,
@@ -148,11 +183,13 @@ public:
     }
 
 
+    /** @brief Obtiene el recurso de textura sin transferir su propiedad. */
     ID3D11Texture2D*
         GetTexture() const noexcept {
         return m_texture;
     }
 
+    /** @brief Obtiene la dirección del puntero interno para funciones COM de salida. */
     ID3D11Texture2D**
         GetTextureAddress() noexcept {
         return &m_texture;
@@ -161,7 +198,8 @@ public:
 
 public:
     /**
-     * @brief Recurso base de la textura en GPU.
+     * @brief Recurso base de textura residente en GPU.
+     * @note La clase libera esta referencia en @c destroy().
      */
     ID3D11Texture2D* m_texture = nullptr;
 

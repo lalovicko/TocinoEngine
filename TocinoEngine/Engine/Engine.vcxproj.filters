@@ -65,7 +65,7 @@
     <ClInclude Include="include\rendering\SwapChain.h">
       <Filter>Archivos de encabezado\rendering</Filter>
     </ClInclude>
-    <ClInclude Include="Texture2D.h">
+    <ClInclude Include="include\rendering\Texture2D.h">
       <Filter>Archivos de encabezado\rendering</Filter>
     </ClInclude>
   </ItemGroup>
